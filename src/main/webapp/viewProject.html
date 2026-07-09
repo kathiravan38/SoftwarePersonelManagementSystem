@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — View Projects</title>
+  <link rel="stylesheet" href="css/spms.css" />
+  <style>
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .status-active {
+      background: rgba(62,207,142,0.1);
+      border: 1px solid rgba(62,207,142,0.25);
+      color: var(--green);
+    }
+    .status-completed {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      color: var(--text3);
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+  </style>
+</head>
+<body>
+<div class="main">
+
+  <div class="topbar">
+    <span class="topbar-title">SPMS</span>
+    <div class="topbar-breadcrumb">
+      <span>Projects</span>
+      <span>›</span>
+      <span class="current">View Projects</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <h1>Project Registry</h1>
+      <p>All active and completed projects in the system.</p>
+      <div class="accent-line"></div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">
+      <button class="btn btn-primary" onclick="loadProjects()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Refresh
+      </button>
+      <a href="addProject.html" class="btn btn-secondary">+ Add Project</a>
+      <div class="spinner" id="spinner"></div>
+      <span id="count" style="margin-left:auto; font-size:0.75rem; color:var(--text3); font-family:var(--mono);"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Project ID</th>
+            <th>Project Name</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Manager</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr class="skeleton-row"><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="skeleton-row"><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="msg" class="alert" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<script src="spms-nav.js"></script>
+<script>
+  window.onload = loadProjects;
+
+  function loadProjects() {
+    document.getElementById('spinner').classList.add('show');
+    document.getElementById('count').innerText = '';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'ViewProjectServlet', true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('spinner').classList.remove('show');
+        if (xhr.status === 200) {
+          renderTable(xhr.responseText);
+        } else {
+          showMsg('error', 'Failed to load project data.');
+        }
+      }
+    };
+    xhr.send();
+  }
+
+  function renderTable(html) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+    var rows = doc.querySelectorAll('tbody tr, table tr:not(:first-child)');
+
+    if (!rows.length) {
+      document.getElementById('tableBody').innerHTML =
+        '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:28px;">No projects found.</td></tr>';
+      return;
+    }
+
+    var today = new Date();
+    var body = '';
+    rows.forEach(function (row) {
+      var cells = row.querySelectorAll('td');
+      if (cells.length < 5) return;
+      var endDate = new Date(cells[3].innerText || cells[3].textContent);
+      var isActive = endDate >= today;
+      var statusBadge = isActive
+        ? '<span class="status-badge status-active"><span class="status-dot"></span>Active</span>'
+        : '<span class="status-badge status-completed"><span class="status-dot"></span>Completed</span>';
+
+      body += '<tr>'
+        + '<td><span style="font-family:var(--mono);font-size:0.78rem;color:var(--amber);">' + esc(cells[0].innerText) + '</span></td>'
+        + '<td><strong>' + esc(cells[1].innerText) + '</strong></td>'
+        + '<td style="font-family:var(--mono);font-size:0.78rem;color:var(--text2);">' + esc(cells[2].innerText) + '</td>'
+        + '<td style="font-family:var(--mono);font-size:0.78rem;color:var(--text2);">' + esc(cells[3].innerText) + '</td>'
+        + '<td>' + esc(cells[4].innerText) + '</td>'
+        + '<td>' + statusBadge + '</td>'
+        + '</tr>';
+    });
+
+    document.getElementById('tableBody').innerHTML = body || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:28px;">No projects found.</td></tr>';
+    document.getElementById('count').innerText = rows.length + ' project' + (rows.length !== 1 ? 's' : '');
+  }
+
+  function showMsg(type, text) {
+    var el = document.getElementById('msg');
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = text;
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

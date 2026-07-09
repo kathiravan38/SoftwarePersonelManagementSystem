@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — View Employees</title>
+  <link rel="stylesheet" href="css/spms.css" />
+</head>
+<body>
+<div class="main">
+
+  <div class="topbar">
+    <span class="topbar-title">SPMS</span>
+    <div class="topbar-breadcrumb">
+      <span>Employees</span>
+      <span>›</span>
+      <span class="current">View Employees</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <h1>Employee Directory</h1>
+      <p>All registered employees in the system.</p>
+      <div class="accent-line"></div>
+    </div>
+
+    <!-- Quick action row -->
+    <div style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">
+      <button class="btn btn-primary" onclick="loadEmployees()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Refresh
+      </button>
+      <a href="addEmployee.html" class="btn btn-secondary">+ Add Employee</a>
+      <div class="spinner" id="spinner"></div>
+      <span id="count" style="margin-left:auto; font-size:0.75rem; color:var(--text3); font-family:var(--mono);"></span>
+    </div>
+
+    <div class="table-wrap" id="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Emp ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Salary</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr class="skeleton-row"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="skeleton-row"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr class="skeleton-row"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="msg" class="alert" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<script src="spms-nav.js"></script>
+<script>
+  window.onload = loadEmployees;
+
+  function loadEmployees() {
+    document.getElementById('spinner').classList.add('show');
+    document.getElementById('count').innerText = '';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'ViewEmployeeServlet', true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('spinner').classList.remove('show');
+        if (xhr.status === 200) {
+          renderTable(xhr.responseText);
+        } else {
+          showMsg('error', 'Failed to load employee data.');
+        }
+      }
+    };
+    xhr.send();
+  }
+
+  function renderTable(html) {
+    // The servlet returns a full <table>…</table>
+    // We extract rows and re-render with styled markup
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+    var rows = doc.querySelectorAll('tbody tr, table tr:not(:first-child)');
+
+    if (!rows.length) {
+      document.getElementById('tableBody').innerHTML =
+        '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:28px;">No employees found.</td></tr>';
+      return;
+    }
+
+    var body = '';
+    rows.forEach(function (row) {
+      var cells = row.querySelectorAll('td');
+      if (cells.length < 7) return;
+      var salary = parseFloat(cells[6].innerText || cells[6].textContent);
+      body += '<tr>'
+        + '<td><span style="font-family:var(--mono);font-size:0.78rem;color:var(--amber);">' + esc(cells[0].innerText) + '</span></td>'
+        + '<td><strong>' + esc(cells[1].innerText) + '</strong></td>'
+        + '<td style="color:var(--text2);">' + esc(cells[2].innerText) + '</td>'
+        + '<td style="font-family:var(--mono);font-size:0.78rem;">' + esc(cells[3].innerText) + '</td>'
+        + '<td><span class="tag tag-amber">' + esc(cells[4].innerText) + '</span></td>'
+        + '<td><span class="tag">' + esc(cells[5].innerText) + '</span></td>'
+        + '<td style="font-family:var(--mono);">₹' + (isNaN(salary) ? cells[6].innerText : salary.toLocaleString('en-IN')) + '</td>'
+        + '</tr>';
+    });
+
+    document.getElementById('tableBody').innerHTML = body || '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:28px;">No employees found.</td></tr>';
+    document.getElementById('count').innerText = rows.length + ' record' + (rows.length !== 1 ? 's' : '');
+  }
+
+  function showMsg(type, text) {
+    var el = document.getElementById('msg');
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = text;
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

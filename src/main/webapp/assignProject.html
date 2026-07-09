@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — Assign Project</title>
+  <link rel="stylesheet" href="css/spms.css" />
+</head>
+<body>
+<div class="main">
+
+  <div class="topbar">
+    <span class="topbar-title">SPMS</span>
+    <div class="topbar-breadcrumb">
+      <span>Assignments</span>
+      <span>›</span>
+      <span class="current">Assign Project</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <h1>Assign Project</h1>
+      <p>Link an employee to a project with a specific role.</p>
+      <div class="accent-line"></div>
+    </div>
+
+    <!-- Two column layout -->
+    <div style="display:grid; grid-template-columns: 380px 1fr; gap: 24px; align-items: start;">
+
+      <!-- Left: Form -->
+      <div class="card">
+        <div style="font-family:var(--mono);font-size:0.68rem;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:18px;">New Assignment</div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="emp_id">Employee ID</label>
+          <input type="number" id="emp_id" placeholder="e.g. 1001" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="project_id">Project ID</label>
+          <input type="number" id="project_id" placeholder="e.g. 201" />
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label for="role">Role in Project</label>
+          <input type="text" id="role" placeholder="e.g. Lead Developer" />
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="assignProject()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Assign
+          </button>
+          <div class="spinner" id="assignSpinner"></div>
+        </div>
+
+        <div id="assignMsg" class="alert"></div>
+      </div>
+
+      <!-- Right: Assignments table -->
+      <div>
+        <div style="display:flex; gap:10px; margin-bottom:14px; align-items:center;">
+          <span style="font-family:var(--mono);font-size:0.78rem;color:var(--text2);">All Assignments</span>
+          <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.75rem;" onclick="loadAssignments()">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Refresh
+          </button>
+          <div class="spinner" id="loadSpinner"></div>
+          <span id="count" style="margin-left:auto;font-size:0.72rem;color:var(--text3);font-family:var(--mono);"></span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Assign ID</th>
+                <th>Emp ID</th>
+                <th>Employee</th>
+                <th>Project ID</th>
+                <th>Project</th>
+                <th>Role</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr class="skeleton-row"><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+              <tr class="skeleton-row"><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="spms-nav.js"></script>
+<script>
+  window.onload = loadAssignments;
+
+  function showMsg(elId, type, text) {
+    var el = document.getElementById(elId);
+    var icon = type === 'success'
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = icon + text;
+  }
+
+  function assignProject() {
+    var emp_id     = document.getElementById('emp_id').value.trim();
+    var project_id = document.getElementById('project_id').value.trim();
+    var role       = document.getElementById('role').value.trim();
+
+    if (!emp_id)     { showMsg('assignMsg', 'error', 'Employee ID is required.'); return; }
+    if (!project_id) { showMsg('assignMsg', 'error', 'Project ID is required.'); return; }
+    if (!role)       { showMsg('assignMsg', 'error', 'Role is required.'); return; }
+
+    document.getElementById('assignSpinner').classList.add('show');
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'AssignProjectServlet', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('assignSpinner').classList.remove('show');
+        var res = xhr.responseText.trim();
+        if (res.indexOf('Success') !== -1 || res.indexOf('Assigned') !== -1) {
+          showMsg('assignMsg', 'success', res);
+          document.getElementById('emp_id').value = '';
+          document.getElementById('project_id').value = '';
+          document.getElementById('role').value = '';
+          loadAssignments();
+        } else {
+          showMsg('assignMsg', 'error', res);
+        }
+      }
+    };
+    xhr.send('emp_id=' + encodeURIComponent(emp_id) + '&project_id=' + encodeURIComponent(project_id) + '&role=' + encodeURIComponent(role));
+  }
+
+  function loadAssignments() {
+    document.getElementById('loadSpinner').classList.add('show');
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'AssignProjectServlet', true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('loadSpinner').classList.remove('show');
+        if (xhr.status === 200) renderTable(xhr.responseText);
+      }
+    };
+    xhr.send();
+  }
+
+  function renderTable(html) {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(html, 'text/html');
+    var rows = doc.querySelectorAll('tbody tr, table tr:not(:first-child)');
+
+    if (!rows.length) {
+      document.getElementById('tableBody').innerHTML =
+        '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:28px;">No assignments found.</td></tr>';
+      return;
+    }
+
+    var body = '';
+    rows.forEach(function (row) {
+      var cells = row.querySelectorAll('td');
+      if (cells.length < 6) return;
+      body += '<tr>'
+        + '<td><span style="font-family:var(--mono);font-size:0.75rem;color:var(--text3);">#' + esc(cells[0].innerText) + '</span></td>'
+        + '<td><span style="font-family:var(--mono);font-size:0.78rem;color:var(--amber);">' + esc(cells[1].innerText) + '</span></td>'
+        + '<td><strong>' + esc(cells[2].innerText) + '</strong></td>'
+        + '<td><span style="font-family:var(--mono);font-size:0.78rem;color:var(--blue);">' + esc(cells[3].innerText) + '</span></td>'
+        + '<td>' + esc(cells[4].innerText) + '</td>'
+        + '<td><span class="tag tag-amber">' + esc(cells[5].innerText) + '</span></td>'
+        + '</tr>';
+    });
+
+    document.getElementById('tableBody').innerHTML = body || '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:28px;">No assignments found.</td></tr>';
+    document.getElementById('count').innerText = rows.length + ' assignment' + (rows.length !== 1 ? 's' : '');
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>

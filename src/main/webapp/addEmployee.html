@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — Add Employee</title>
+  <link rel="stylesheet" href="css/spms.css" />
+</head>
+<body>
+<div class="main">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <span class="topbar-title">SPMS</span>
+    <div class="topbar-breadcrumb">
+      <span>Employees</span>
+      <span>›</span>
+      <span class="current">Add Employee</span>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="page-header">
+      <h1>Add Employee</h1>
+      <p>Register a new employee into the system.</p>
+      <div class="accent-line"></div>
+    </div>
+
+    <div class="card" style="max-width:680px;">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="emp_id">Employee ID</label>
+          <input type="number" id="emp_id" placeholder="e.g. 1005" />
+        </div>
+
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" placeholder="e.g. John Doe" />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="john@company.com" />
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="text" id="phone" placeholder="e.g. 9876543210" />
+        </div>
+
+        <div class="form-group">
+          <label for="role">Role</label>
+          <input type="text" id="role" placeholder="e.g. Developer" />
+        </div>
+
+        <div class="form-group">
+          <label for="department">Department</label>
+          <input type="text" id="department" placeholder="e.g. Engineering" />
+        </div>
+
+        <div class="form-group full">
+          <label for="salary">Salary (₹)</label>
+          <input type="number" id="salary" placeholder="e.g. 75000" step="0.01" />
+        </div>
+
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="addEmployee()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Employee
+        </button>
+        <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+        <div class="spinner" id="spinner"></div>
+      </div>
+
+      <div id="msg" class="alert"></div>
+    </div>
+  </div>
+</div>
+
+<script src="spms-nav.js"></script>
+<script>
+  function clearForm() {
+    ['emp_id','name','email','phone','role','department','salary'].forEach(function(id){
+      document.getElementById(id).value = '';
+    });
+    hideMsg();
+  }
+
+  function hideMsg() {
+    var el = document.getElementById('msg');
+    el.className = 'alert'; el.innerHTML = '';
+  }
+
+  function showMsg(type, text) {
+    var el = document.getElementById('msg');
+    var icon = type === 'success'
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = icon + text;
+  }
+
+  function addEmployee() {
+    var fields = {
+      emp_id: document.getElementById('emp_id').value.trim(),
+      name: document.getElementById('name').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      role: document.getElementById('role').value.trim(),
+      department: document.getElementById('department').value.trim(),
+      salary: document.getElementById('salary').value.trim()
+    };
+
+    for (var key in fields) {
+      if (!fields[key]) {
+        showMsg('error', key.charAt(0).toUpperCase() + key.slice(1) + ' is required.');
+        return;
+      }
+    }
+
+    document.getElementById('spinner').classList.add('show');
+
+    var params = Object.keys(fields).map(function (k) {
+      return k + '=' + encodeURIComponent(fields[k]);
+    }).join('&');
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'AddEmployeeServlet', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('spinner').classList.remove('show');
+        var res = xhr.responseText.trim();
+        if (res.indexOf('Success') !== -1 || res.indexOf('Added') !== -1) {
+          showMsg('success', res);
+          clearForm();
+        } else {
+          showMsg('error', res);
+        }
+      }
+    };
+    xhr.send(params);
+  }
+</script>
+</body>
+</html>

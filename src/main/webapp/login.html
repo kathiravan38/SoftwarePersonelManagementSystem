@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — Login</title>
+  <link rel="stylesheet" href="css/spms.css" />
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-grid-bg"></div>
+  <div class="login-glow"></div>
+
+  <div class="login-card">
+
+    <div class="logo-badge">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="#0d0f12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+    </div>
+
+    <h1>Welcome back</h1>
+    <p class="subtitle">Sign in to Software Personnel Management System</p>
+
+    <div class="form-group">
+      <label for="username">username</label>
+      <input type="text" id="username" placeholder="Enter username" autocomplete="username" />
+    </div>
+
+    <div class="form-group">
+      <label for="password">password</label>
+      <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" />
+    </div>
+
+    <button class="btn btn-primary" onclick="doLogin()" id="loginBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+        <polyline points="10 17 15 12 10 7"/>
+        <line x1="15" y1="12" x2="3" y2="12"/>
+      </svg>
+      Sign In
+    </button>
+
+    <div id="msg" class="alert"></div>
+
+    <div class="login-footer">HELLO WELCOME BACK</div>
+  </div>
+</div>
+
+<script>
+  // Allow Enter key
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  function doLogin() {
+    var username = document.getElementById('username').value.trim();
+    var password = document.getElementById('password').value.trim();
+    var msg = document.getElementById('msg');
+    var btn = document.getElementById('loginBtn');
+
+    msg.className = 'alert';
+    msg.innerText = '';
+
+    if (!username) { showMsg('error', 'Username is required.'); return; }
+    if (!password) { showMsg('error', 'Password is required.'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner show"></span> Signing in…';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'LoginServlet', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        btn.disabled = false;
+        btn.innerHTML = '&#8594; Sign In';
+        if (xhr.status === 200 && xhr.responseText.trim() === 'SUCCESS') {
+          showMsg('success', 'Login successful! Redirecting…');
+          setTimeout(function () { window.location.href = 'viewEmployee.html'; }, 900);
+        } else {
+          showMsg('error', 'Invalid username or password.');
+        }
+      }
+    };
+    xhr.send('username=' + encodeURIComponent(username) + '&password=' + encodeURIComponent(password));
+  }
+
+  function showMsg(type, text) {
+    var el = document.getElementById('msg');
+    var icon = type === 'success'
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = icon + text;
+  }
+</script>
+</body>
+</html>

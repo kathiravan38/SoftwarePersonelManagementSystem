@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — Delete Employee</title>
+  <link rel="stylesheet" href="css/spms.css" />
+  <style>
+    .danger-zone {
+      border: 1px solid rgba(245,98,90,0.25);
+      background: rgba(245,98,90,0.04);
+      border-radius: var(--radius-lg);
+      padding: 22px 26px;
+      margin-top: 20px;
+    }
+    .danger-zone h3 {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--red);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .danger-zone p {
+      font-size: 0.8rem;
+      color: var(--text2);
+      margin-bottom: 18px;
+    }
+
+    /* Confirm overlay */
+    .overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay.show { display: flex; }
+    .confirm-box {
+      background: var(--panel);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-lg);
+      padding: 32px 36px;
+      width: 360px;
+      box-shadow: var(--shadow);
+      animation: slideUp 0.2s ease;
+    }
+    .confirm-box h3 {
+      font-family: var(--mono);
+      font-size: 1rem;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .confirm-box p {
+      font-size: 0.82rem;
+      color: var(--text2);
+      margin-bottom: 22px;
+    }
+    .confirm-box .emp-id-display {
+      display: inline-block;
+      background: var(--amber-glow);
+      color: var(--amber);
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform: translateY(12px); }
+      to   { opacity:1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="main">
+
+  <div class="topbar">
+    <span class="topbar-title">SPMS</span>
+    <div class="topbar-breadcrumb">
+      <span>Employees</span>
+      <span>›</span>
+      <span class="current">Delete Employee</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <h1>Delete Employee</h1>
+      <p>Permanently remove an employee record from the system.</p>
+      <div class="accent-line"></div>
+    </div>
+
+    <div class="card" style="max-width:480px;">
+      <div class="form-group">
+        <label for="emp_id">Employee ID</label>
+        <input type="number" id="emp_id" placeholder="Enter employee ID to delete…" />
+      </div>
+
+      <div class="danger-zone">
+        <h3>⚠ Danger Zone</h3>
+        <p>Deleting an employee will also remove all their project assignments. This action cannot be undone.</p>
+        <button class="btn btn-danger" onclick="confirmDelete()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+            <path d="M9 6V4h6v2"/>
+          </svg>
+          Delete Employee
+        </button>
+      </div>
+
+      <div id="msg" class="alert" style="margin-top:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="overlay" id="overlay">
+  <div class="confirm-box">
+    <h3>Confirm Deletion</h3>
+    <div class="emp-id-display" id="confirmIdDisplay"></div>
+    <p>Are you sure you want to permanently delete this employee and all their assignments?</p>
+    <div class="btn-row" style="margin-top:0;">
+      <button class="btn btn-danger" onclick="doDelete()">Yes, Delete</button>
+      <button class="btn btn-secondary" onclick="closeOverlay()">Cancel</button>
+      <div class="spinner" id="spinner"></div>
+    </div>
+  </div>
+</div>
+
+<script src="spms-nav.js"></script>
+<script>
+  function showMsg(type, text) {
+    var el = document.getElementById('msg');
+    var icon = type === 'success'
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = icon + text;
+  }
+
+  function confirmDelete() {
+    var id = document.getElementById('emp_id').value.trim();
+    if (!id) { showMsg('error', 'Employee ID is required.'); return; }
+    document.getElementById('confirmIdDisplay').innerText = 'Employee #' + id;
+    document.getElementById('overlay').classList.add('show');
+  }
+
+  function closeOverlay() {
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function doDelete() {
+    var id = document.getElementById('emp_id').value.trim();
+    document.getElementById('spinner').classList.add('show');
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'DeleteEmployeeServlet', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('spinner').classList.remove('show');
+        closeOverlay();
+        var res = xhr.responseText.trim();
+        if (res.indexOf('Success') !== -1 || res.indexOf('Deleted') !== -1) {
+          showMsg('success', res);
+          document.getElementById('emp_id').value = '';
+        } else {
+          showMsg('error', res);
+        }
+      }
+    };
+    xhr.send('emp_id=' + encodeURIComponent(id));
+  }
+</script>
+</body>
+</html>

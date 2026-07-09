@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — Add Project</title>
+  <link rel="stylesheet" href="css/spms.css" />
+</head>
+<body>
+<div class="main">
+
+  <div class="topbar">
+    <span class="topbar-title">SPMS</span>
+    <div class="topbar-breadcrumb">
+      <span>Projects</span>
+      <span>›</span>
+      <span class="current">Add Project</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <h1>Add Project</h1>
+      <p>Register a new project into the system.</p>
+      <div class="accent-line"></div>
+    </div>
+
+    <div class="card" style="max-width:680px;">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label for="project_id">Project ID</label>
+          <input type="number" id="project_id" placeholder="e.g. 301" />
+        </div>
+
+        <div class="form-group">
+          <label for="project_name">Project Name</label>
+          <input type="text" id="project_name" placeholder="e.g. Mobile App Redesign" />
+        </div>
+
+        <div class="form-group">
+          <label for="start_date">Start Date</label>
+          <input type="date" id="start_date" />
+        </div>
+
+        <div class="form-group">
+          <label for="end_date">End Date</label>
+          <input type="date" id="end_date" />
+        </div>
+
+        <div class="form-group full">
+          <label for="manager">Project Manager</label>
+          <input type="text" id="manager" placeholder="e.g. Carol White" />
+        </div>
+
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="addProject()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Project
+        </button>
+        <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+        <div class="spinner" id="spinner"></div>
+      </div>
+
+      <div id="msg" class="alert"></div>
+    </div>
+  </div>
+</div>
+
+<script src="spms-nav.js"></script>
+<script>
+  function clearForm() {
+    ['project_id','project_name','start_date','end_date','manager'].forEach(function(id){
+      document.getElementById(id).value = '';
+    });
+    var el = document.getElementById('msg');
+    el.className = 'alert'; el.innerHTML = '';
+  }
+
+  function showMsg(type, text) {
+    var el = document.getElementById('msg');
+    var icon = type === 'success'
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = icon + text;
+  }
+
+  function addProject() {
+    var project_id   = document.getElementById('project_id').value.trim();
+    var project_name = document.getElementById('project_name').value.trim();
+    var start_date   = document.getElementById('start_date').value.trim();
+    var end_date     = document.getElementById('end_date').value.trim();
+    var manager      = document.getElementById('manager').value.trim();
+
+    if (!project_id)   { showMsg('error', 'Project ID is required.');   return; }
+    if (!project_name) { showMsg('error', 'Project Name is required.'); return; }
+    if (!start_date)   { showMsg('error', 'Start Date is required.');   return; }
+    if (!end_date)     { showMsg('error', 'End Date is required.');     return; }
+    if (!manager)      { showMsg('error', 'Manager is required.');      return; }
+    if (end_date < start_date) { showMsg('error', 'End Date cannot be before Start Date.'); return; }
+
+    document.getElementById('spinner').classList.add('show');
+
+    var params = 'project_id='   + encodeURIComponent(project_id)
+               + '&project_name=' + encodeURIComponent(project_name)
+               + '&start_date='   + encodeURIComponent(start_date)
+               + '&end_date='     + encodeURIComponent(end_date)
+               + '&manager='      + encodeURIComponent(manager);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'AddProjectServlet', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('spinner').classList.remove('show');
+        var res = xhr.responseText.trim();
+        if (res.indexOf('Success') !== -1 || res.indexOf('Added') !== -1) {
+          showMsg('success', res);
+          clearForm();
+        } else {
+          showMsg('error', res);
+        }
+      }
+    };
+    xhr.send(params);
+  }
+</script>
+</body>
+</html>

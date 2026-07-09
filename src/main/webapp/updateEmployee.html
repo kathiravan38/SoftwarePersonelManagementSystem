@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPMS — Update Employee</title>
+  <link rel="stylesheet" href="css/spms.css" />
+</head>
+<body>
+<div class="main">
+
+  <div class="topbar">
+    <span class="topbar-title">SPMS</span>
+    <div class="topbar-breadcrumb">
+      <span>Employees</span>
+      <span>›</span>
+      <span class="current">Update Employee</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <h1>Update Employee</h1>
+      <p>Fetch an employee by ID, then edit and save their details.</p>
+      <div class="accent-line"></div>
+    </div>
+
+    <!-- Step 1: Fetch -->
+    <div class="card" style="max-width:680px; margin-bottom:20px;">
+      <div style="font-family:var(--mono);font-size:0.68rem;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:14px;">Step 1 — Search Employee</div>
+      <div class="fetch-row">
+        <div class="form-group" style="flex:1;margin:0;">
+          <label for="search_id">Employee ID</label>
+          <input type="number" id="search_id" placeholder="Enter employee ID…" />
+        </div>
+        <button class="btn btn-secondary" onclick="fetchEmployee()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Fetch
+        </button>
+        <div class="spinner" id="fetchSpinner"></div>
+      </div>
+      <div id="fetchMsg" class="alert"></div>
+    </div>
+
+    <!-- Step 2: Edit form (hidden until fetch) -->
+    <div class="card" style="max-width:680px; display:none;" id="formCard">
+      <div style="font-family:var(--mono);font-size:0.68rem;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:14px;">
+        Step 2 — Edit Details
+        <span id="editingId" style="color:var(--amber);margin-left:8px;"></span>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" placeholder="Full name" />
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="Email" />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="text" id="phone" placeholder="Phone" />
+        </div>
+        <div class="form-group">
+          <label for="role">Role</label>
+          <input type="text" id="role" placeholder="Role" />
+        </div>
+        <div class="form-group">
+          <label for="department">Department</label>
+          <input type="text" id="department" placeholder="Department" />
+        </div>
+        <div class="form-group">
+          <label for="salary">Salary (₹)</label>
+          <input type="number" id="salary" placeholder="Salary" step="0.01" />
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="updateEmployee()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+          </svg>
+          Save Changes
+        </button>
+        <div class="spinner" id="saveSpinner"></div>
+      </div>
+
+      <div id="saveMsg" class="alert"></div>
+    </div>
+  </div>
+</div>
+
+<script src="spms-nav.js"></script>
+<script>
+  function showMsg(elId, type, text) {
+    var el = document.getElementById(elId);
+    var icon = type === 'success'
+      ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    el.className = 'alert alert-' + type + ' show';
+    el.innerHTML = icon + text;
+  }
+
+  function fetchEmployee() {
+    var id = document.getElementById('search_id').value.trim();
+    if (!id) { showMsg('fetchMsg', 'error', 'Employee ID is required.'); return; }
+
+    document.getElementById('fetchSpinner').classList.add('show');
+    document.getElementById('formCard').style.display = 'none';
+    document.getElementById('fetchMsg').className = 'alert';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'ViewEmployeeServlet?emp_id=' + encodeURIComponent(id), true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('fetchSpinner').classList.remove('show');
+        var data = xhr.responseText.trim();
+        if (!data || data.indexOf('ERROR') === 0) {
+          showMsg('fetchMsg', 'error', 'No employee found with ID ' + id + '.');
+          return;
+        }
+        var parts = data.split('|');
+        document.getElementById('name').value       = parts[0] || '';
+        document.getElementById('email').value      = parts[1] || '';
+        document.getElementById('phone').value      = parts[2] || '';
+        document.getElementById('role').value       = parts[3] || '';
+        document.getElementById('department').value = parts[4] || '';
+        document.getElementById('salary').value     = parts[5] || '';
+        document.getElementById('editingId').innerText = '— ID #' + id;
+        document.getElementById('formCard').style.display = 'block';
+        document.getElementById('saveMsg').className = 'alert';
+      }
+    };
+    xhr.send();
+  }
+
+  function updateEmployee() {
+    var emp_id = document.getElementById('search_id').value.trim();
+    var fields = ['name','email','phone','role','department','salary'];
+    var values = {};
+    for (var i = 0; i < fields.length; i++) {
+      var v = document.getElementById(fields[i]).value.trim();
+      if (!v) { showMsg('saveMsg', 'error', fields[i] + ' is required.'); return; }
+      values[fields[i]] = v;
+    }
+
+    document.getElementById('saveSpinner').classList.add('show');
+
+    var params = 'emp_id=' + encodeURIComponent(emp_id) + '&' +
+      Object.keys(values).map(function (k) { return k + '=' + encodeURIComponent(values[k]); }).join('&');
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', 'UpdateEmployeeServlet', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.getElementById('saveSpinner').classList.remove('show');
+        var res = xhr.responseText.trim();
+        if (res.indexOf('Success') !== -1 || res.indexOf('Updated') !== -1) {
+          showMsg('saveMsg', 'success', res);
+        } else {
+          showMsg('saveMsg', 'error', res);
+        }
+      }
+    };
+    xhr.send(params);
+  }
+</script>
+</body>
+</html>
